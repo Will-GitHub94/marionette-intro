@@ -6,16 +6,20 @@
 //   5. jQuery ('$')
 //   6. Underscore ('_')
 ContactManager.module("Entities", function (Entities, ContactManager, Backbone, Marionette, $, _) {
-    Entities.Contact = Backbone.Model.extend({});
+    Entities.Contact = Backbone.Model.extend({
+        urlRoot: "contacts"
+    });
+    Entities.configureStorage(Entities.Contact);    // 'configureStorage' = use web storage
 
     Entities.ContactCollection = Backbone.Collection.extend({
+        url: "contacts",                            // Basically specifying an endpoint that allows us to persist data into the web storage
         model: Entities.Contact,
         comparator: "firstName"
     });
+    Entities.configureStorage(Entities.ContactCollection);
 
     // model and collection definitions are here
     var contacts;
-
     var initialiseContacts = function () {
         contacts = new Entities.ContactCollection([
             {
@@ -43,21 +47,38 @@ ContactManager.module("Entities", function (Entities, ContactManager, Backbone, 
                 phoneNumber: "13579"
             }
         ]);
+        contacts.forEach(function(contact) {
+            contact.save();
+        });
     };
 
     // Functions that we are exposing
     var API = {
         getContactEntities: function() {
-            if (contacts === undefined) {
-                initialiseContacts();
+            var contacts = new Entities.ContactCollection();
+            contacts.fetch();
+
+            if (contacts.length === 0) {
+                return initialiseContacts();
             }
             return contacts;
+        },
+        getContactEntity: function(contactId) {
+            var contact = new Entities.Contact({
+                id: contactId
+            });
+            contact.fetch();
+            return contact;
         }
     };
 
     // Request handler
     ContactManager.reqres.setHandler("contact:entities", function () {
         return API.getContactEntities();
+    });
+
+    ContactManager.reqres.setHandler("contact:entity", function (id) {
+        return API.getContactEntity(id);
     });
 
     // Private function
