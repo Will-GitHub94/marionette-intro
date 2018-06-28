@@ -56,19 +56,46 @@ ContactManager.module("Entities", function (Entities, ContactManager, Backbone, 
     var API = {
         getContactEntities: function() {
             var contacts = new Entities.ContactCollection();
-            contacts.fetch();
+            var defer = $.Deferred();
+            var promise;
 
-            if (contacts.length === 0) {
-                return initialiseContacts();
-            }
-            return contacts;
+            contacts.fetch({
+                success: function(data) {
+                    defer.resolve(data);
+                }               
+            });
+            promise = defer.promise();
+
+            $.when(promise)
+                .done(function(contacts) {
+                    if (contacts.length === 0) {
+                        // if we don't have any contacts yet, create some for convenience
+                        contacts.reset(initialiseContacts());
+                    }
+                });
+            return promise;
         },
         getContactEntity: function(contactId) {
             var contact = new Entities.Contact({
                 id: contactId
             });
-            contact.fetch();
-            return contact;
+            var defer = $.Deferred();
+
+            console.log("::: before timeout :::");
+            setTimeout(function() {
+                contact.fetch({
+                    success: function(data) {
+                        console.log("::: success :::");
+                        defer.resolve(data);
+                    },
+                    error: function(data) {
+                        console.log("::: error :::");
+                        defer.resolve(undefined);
+                    }
+                });
+            }, 2000);
+            console.log("::: returning :::");
+            return defer.promise();
         }
     };
 
